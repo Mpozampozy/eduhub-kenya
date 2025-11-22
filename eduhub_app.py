@@ -1,5 +1,5 @@
 # -------------------------------
-# PART 1: Imports, Config, and Sidebar Setup
+# PART 1: Imports, config, and sidebar setup
 # -------------------------------
 import os
 import random
@@ -60,7 +60,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -------------------------------
-# Traffic Tracking
+# Traffic tracking
 # -------------------------------
 VISITS_FILE = "visits.json"
 PAGE_VIEWS_FILE = "page_views.json"
@@ -202,7 +202,6 @@ def show_sidebar_tree(base_folder, indent=0):
         file_id = st.session_state.get("drive_files", {}).get(f, None)
         full_rel_path = os.path.join(base_folder, f)
         safe_key = f"{full_rel_path}_{indent}_{idx}"  # ✅ unique key
-
         if st.session_state.get("logged_in", False):
             if file_id:
                 st.markdown(
@@ -232,7 +231,7 @@ st.markdown(
 # --- Layout columns ---
 left_col, center_col, right_col = st.columns([2,6,2])
 # -------------------------------
-# PART 2: Member Tools (Right Sidebar)
+# PART 2: Member tools (right sidebar)
 # -------------------------------
 with right_col:
     st.markdown("<h3 style='color:#006600;'>Member Tools</h3>", unsafe_allow_html=True)
@@ -350,26 +349,24 @@ with right_col:
             unsafe_allow_html=True
         )
 
-        # Logout control
-        if st.button("Log Out", key="logout_button_right"):
-            st.session_state.update({
-                "logged_in": False,
-                "username": "",
-                "membership": "",
-                "expiry": "",
-                "show_login": True,
-                "show_signup": False,
-                "show_recovery": False,
-                "drive": None
-            })
-            st.success("You have been logged out.")
-            st.rerun()
+    # Logout control
+    if st.session_state["logged_in"] and st.button("Log Out", key="logout_button_right"):
+        st.session_state.update({
+            "logged_in": False,
+            "username": "",
+            "membership": "",
+            "expiry": "",
+            "show_login": True,
+            "show_signup": False,
+            "show_recovery": False,
+            "drive": None
+        })
+        st.success("You have been logged out.")
+        st.rerun()
 
 # -------------------------------
-# PART 3: Exams, Folder Tree helpers, and Center display
+# PART 3: Exams, folder tree helpers, and center display
 # -------------------------------
-
-# 🔹 Folder tree helper (define before use)
 def show_folder_tree(base_folder):
     folder_path = os.path.join(UPLOAD_ROOT, base_folder)
     if not os.path.exists(folder_path):
@@ -390,7 +387,6 @@ def show_folder_tree(base_folder):
                 st.markdown(f"[📄 {f}](https://drive.google.com/file/d/{file_id}/view)", unsafe_allow_html=True)
             else:
                 st.markdown(f"📄 {f} (No Drive link)")
-
 # Exams display (dynamic, no hardcoding) + subscription message placement
 with center_col:
     st.markdown("<h3 style='color:#cc6600;'>📙 Examinations</h3>", unsafe_allow_html=True)
@@ -432,6 +428,7 @@ if st.session_state["logged_in"]:
     st.markdown("<h3 style='color:#003366;'>📂 EduHub Folder Contents</h3>", unsafe_allow_html=True)
     for folder in sorted(get_parent_folders()):
         show_folder_tree(folder)
+
 # -------------------------------
 # Admin Panel (Tabbed Layout) — unified, no duplicates
 # -------------------------------
@@ -459,8 +456,7 @@ if st.session_state.get("membership") == "ADMIN" and st.session_state.get("logge
             for page, count in views_summary.items():
                 st.write(f"📄 {page}: {count} views")
         else:
-            st.write("No page views yet.")  # ← scoped to Admin only
-
+            st.write("No page views yet.")
     # -------------------------------
     # USER MANAGEMENT TAB
     # -------------------------------
@@ -488,7 +484,6 @@ if st.session_state.get("membership") == "ADMIN" and st.session_state.get("logge
         # ➕ Add User controls (keys updated to avoid duplicates)
         new_user = st.text_input("Enter new username/email", key="admin_add_user_input_user_tab")
         new_pass = st.text_input("Assign password", type="password", key="admin_add_pass_input_user_tab")
-
         if st.button("➕ Add User", key="admin_add_user_btn_user_tab"):
             if new_user and new_pass:
                 st.session_state["users"][new_user] = new_pass
@@ -497,6 +492,7 @@ if st.session_state.get("membership") == "ADMIN" and st.session_state.get("logge
                 st.rerun()
             else:
                 st.error("Please enter both username/email and password.")
+
     # -------------------------------
     # FOLDER MANAGEMENT TAB (Parent + Subfolder tools unified)
     # -------------------------------
@@ -610,7 +606,6 @@ if st.session_state.get("membership") == "ADMIN" and st.session_state.get("logge
                         st.rerun()
                     else:
                         st.error("Subfolder not found.")
-
     # -------------------------------
     # FILE MANAGEMENT TAB
     # -------------------------------
@@ -723,4 +718,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
