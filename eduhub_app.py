@@ -177,7 +177,6 @@ def count_sessions(username):
     active = sessions.get(username, [])
     active = [s for s in active if time.time() - s["timestamp"] < 86400]
     return len(active)
-
 # -------------------------------
 # Sidebar resources (dynamic tree with clickable files)
 # -------------------------------
@@ -229,7 +228,8 @@ st.markdown(
 )
 
 # --- Layout columns ---
-left_col, center_col, right_col = st.columns([2,6,2])
+left_col, center_col, right_col = st.columns([2, 6, 2])
+
 # -------------------------------
 # PART 2: Member tools (right sidebar)
 # -------------------------------
@@ -295,7 +295,6 @@ with right_col:
 
     # Sign Up block (payment instructions only + go back)
     elif st.session_state["show_signup"]:
-        # 🔹 Go Back to Log In button
         if st.button("⬅️ Go Back to Log In", key="go_back_login_btn"):
             st.session_state.update({
                 "show_signup": False,
@@ -304,7 +303,6 @@ with right_col:
             })
             st.rerun()
 
-        # Right column intentionally shows no inputs during Sign Up
         st.info("Use the center section for subscription details.")
 
     # Recovery block (validates existing user, then allows reset)
@@ -340,30 +338,6 @@ with right_col:
                 st.rerun()
             else:
                 st.error("❌ Invalid reset code.")
-
-    # ✅ Show welcome + membership info here
-    if st.session_state["logged_in"]:
-        st.markdown(f"👋 Welcome, <strong>{st.session_state['username']}</strong>", unsafe_allow_html=True)
-        st.markdown(
-            f"📅 Membership: {st.session_state['membership']} | ⏳ Days left: {days_remaining(st.session_state['expiry'])}",
-            unsafe_allow_html=True
-        )
-
-    # Logout control
-    if st.session_state["logged_in"] and st.button("Log Out", key="logout_button_right"):
-        st.session_state.update({
-            "logged_in": False,
-            "username": "",
-            "membership": "",
-            "expiry": "",
-            "show_login": True,
-            "show_signup": False,
-            "show_recovery": False,
-            "drive": None
-        })
-        st.success("You have been logged out.")
-        st.rerun()
-
 # -------------------------------
 # PART 3: Exams, folder tree helpers, and center display
 # -------------------------------
@@ -387,6 +361,7 @@ def show_folder_tree(base_folder):
                 st.markdown(f"[📄 {f}](https://drive.google.com/file/d/{file_id}/view)", unsafe_allow_html=True)
             else:
                 st.markdown(f"📄 {f} (No Drive link)")
+
 # Exams display (dynamic, no hardcoding) + subscription message placement
 with center_col:
     st.markdown("<h3 style='color:#cc6600;'>📙 Examinations</h3>", unsafe_allow_html=True)
@@ -458,174 +433,6 @@ if st.session_state.get("membership") == "ADMIN" and st.session_state.get("logge
         else:
             st.write("No page views yet.")
     # -------------------------------
-    # USER MANAGEMENT TAB
-    # -------------------------------
-    with user_tab:
-        st.markdown("<h4 style='color:#003366;'>👥 User Management</h4>", unsafe_allow_html=True)
-
-        # ---------------- SUBSCRIBED MEMBERS LIST ----------------
-        st.markdown("<h4 style='color:#003366;'>👥 Subscribed Members</h4>", unsafe_allow_html=True)
-
-        users = load_users()
-        st.session_state["users"] = users
-        sessions = load_sessions()
-
-        if users:
-            table_html = "<table style='width:100%; border-collapse: collapse;'>"
-            table_html += "<tr><th>Username/Email</th><th>Active Gadgets</th></tr>"
-            for u in users.keys():
-                count = count_sessions(u)
-                table_html += f"<tr><td>{u}</td><td>{count}</td></tr>"
-            table_html += "</table>"
-            st.markdown(table_html, unsafe_allow_html=True)
-        else:
-            st.warning("No subscribed members found.")
-
-        # ➕ Add User controls (keys updated to avoid duplicates)
-        new_user = st.text_input("Enter new username/email", key="admin_add_user_input_user_tab")
-        new_pass = st.text_input("Assign password", type="password", key="admin_add_pass_input_user_tab")
-        if st.button("➕ Add User", key="admin_add_user_btn_user_tab"):
-            if new_user and new_pass:
-                st.session_state["users"][new_user] = new_pass
-                save_users(st.session_state["users"])
-                st.success(f"✅ User '{new_user}' created successfully.")
-                st.rerun()
-            else:
-                st.error("Please enter both username/email and password.")
-
- # -------------------------------
-# FOLDER MANAGEMENT TAB (Parent + Subfolder tools unified)
-# -------------------------------
-with folder_tab:
-    st.markdown("<h4 style='color:#003366;'>📁 Manage Parent Folders</h4>", unsafe_allow_html=True)
-    parent_folders = get_parent_folders()
-    selected_parent = st.selectbox("Select parent folder", parent_folders, key="parent_folder_select_admin")
-
-    colA, colB, colC = st.columns(3)
-
-    with colA:
-        new_parent = st.text_input("New parent folder name", key="new_parent_input")
-        if st.button("➕ Add Parent Folder", key="add_parent_btn"):
-            if new_parent:
-                new_path = os.path.join(str(UPLOAD_ROOT), str(new_parent))
-                os.makedirs(new_path, exist_ok=True)
-                st.success(f"✅ Parent folder '{new_parent}' created.")
-                st.rerun()
-            else:
-                st.error("Please enter a folder name.")
-
-    with colB:
-        del_parent = st.text_input("Delete parent folder", key="del_parent_input")
-        if st.button("🗑️ Delete Parent Folder", key="del_parent_btn"):
-            if del_parent:
-                del_path = os.path.join(str(UPLOAD_ROOT), str(del_parent))
-                if os.path.exists(del_path):
-                    shutil.rmtree(del_path)
-                    st.success(f"🗑️ Parent folder '{del_parent}' deleted.")
-                    st.rerun()
-                else:
-                    st.error("Folder not found.")
-            else:
-                st.error("Please enter a folder name.")
-
-    with colC:
-        rename_parent_old = st.text_input("Parent folder to rename", key="rename_parent_old_input")
-        rename_parent_new = st.text_input("New name for parent folder", key="rename_parent_new_input")
-        if st.button("✏️ Rename Parent Folder", key="rename_parent_btn"):
-            if rename_parent_old and rename_parent_new:
-                old_path = os.path.join(str(UPLOAD_ROOT), str(rename_parent_old))
-                new_path = os.path.join(str(UPLOAD_ROOT), str(rename_parent_new))
-                if os.path.exists(old_path):
-                    os.rename(old_path, new_path)
-                    st.success(f"✅ Renamed parent folder '{rename_parent_old}' to '{rename_parent_new}'")
-                    st.rerun()
-                else:
-                    st.error("Folder not found.")
-
-    st.markdown("<h4 style='color:#003366;'>📂 Manage Subfolders</h4>", unsafe_allow_html=True)
-    target_parent = st.selectbox(
-        "Select parent folder for subfolders",
-        get_parent_folders(),
-        key="subfolder_parent_select_admin"
-    )
-
-    # ✅ Ensure both args are strings to avoid TypeError
-    if target_parent is not None and str(target_parent).strip() != "":
-        nested_path = os.path.join(str(UPLOAD_ROOT), str(target_parent))
-        chosen_path = str(target_parent)
-    else:
-        nested_path = str(UPLOAD_ROOT)
-        chosen_path = ""
-
-    # ✅ Drill down recursively
-    while True:
-        subfolders = get_subfolders(nested_path)
-        if not subfolders:
-            break
-        choice = st.selectbox(
-            f"Select subfolder inside {chosen_path}" if chosen_path else "Select subfolder",
-            ["(none)"] + [str(sf) for sf in subfolders],
-            key=f"nested_{chosen_path}_select"
-        )
-        if choice == "(none)":
-            break
-        nested_path = os.path.join(str(nested_path), str(choice))
-        chosen_path = os.path.join(str(chosen_path), str(choice)) if chosen_path else str(choice)
-
-    # ✅ Columns for subfolder actions
-    colE, colF, colG = st.columns(3)
-
-    with colE:
-        st.write("Subfolder action A here")
-
-    with colF:
-        st.write("Subfolder action B here")
-
-    with colG:
-        st.write("Subfolder action C here")
-
-        # ---------------- ADD SUBFOLDER ----------------
-        with colE:
-            subfolder_name = st.text_input("New subfolder name", key="new_subfolder_input")
-            if st.button("➕ Add Subfolder", key="add_subfolder_btn"):
-                if subfolder_name:
-                    sub_path = os.path.join(nested_path, subfolder_name)
-                    os.makedirs(sub_path, exist_ok=True)
-                    st.success(f"✅ Subfolder '{subfolder_name}' added under '{chosen_path}'")
-                    st.rerun()
-                else:
-                    st.error("Please enter a subfolder name.")
-
-        # ---------------- DELETE SUBFOLDER ----------------
-        with colF:
-            del_subfolder = st.text_input("Delete subfolder", key="del_subfolder_input")
-            if st.button("🗑️ Delete Subfolder", key="del_subfolder_btn"):
-                if del_subfolder:
-                    sub_path = os.path.join(nested_path, del_subfolder)
-                    if os.path.exists(sub_path):
-                        shutil.rmtree(sub_path)
-                        st.success(f"🗑️ Subfolder '{del_subfolder}' deleted from '{chosen_path}'")
-                        st.rerun()
-                    else:
-                        st.error("Subfolder not found.")
-                else:
-                    st.error("Please enter a subfolder name.")
-
-        # ---------------- RENAME SUBFOLDER ----------------
-        with colG:
-            rename_sub_old = st.text_input("Subfolder to rename", key="rename_sub_old_input")
-            rename_sub_new = st.text_input("New name for subfolder", key="rename_sub_new_input")
-            if st.button("✏️ Rename Subfolder", key="rename_sub_btn"):
-                if rename_sub_old and rename_sub_new:
-                    old_path = os.path.join(nested_path, rename_sub_old)
-                    new_path = os.path.join(nested_path, rename_sub_new)
-                    if os.path.exists(old_path):
-                        os.rename(old_path, new_path)
-                        st.success(f"✅ Renamed subfolder '{rename_sub_old}' to '{rename_sub_new}'")
-                        st.rerun()
-                    else:
-                        st.error("Subfolder not found.")
-    # -------------------------------
     # FILE MANAGEMENT TAB
     # -------------------------------
     with file_tab:
@@ -633,8 +440,13 @@ with folder_tab:
         parent_folders = get_parent_folders()
         target_parent = st.selectbox("Select parent folder", parent_folders, key="file_parent_select_admin")
 
-        nested_path = os.path.join(UPLOAD_ROOT, target_parent)
-        chosen_path = target_parent
+        # ✅ Ensure safe join
+        if target_parent is not None and str(target_parent).strip() != "":
+            nested_path = os.path.join(str(UPLOAD_ROOT), str(target_parent))
+            chosen_path = str(target_parent)
+        else:
+            nested_path = str(UPLOAD_ROOT)
+            chosen_path = ""
 
         while True:
             subfolders = get_subfolders(nested_path)
@@ -642,13 +454,13 @@ with folder_tab:
                 break
             choice = st.selectbox(
                 f"Select subfolder inside {chosen_path}",
-                ["(none)"] + subfolders,
+                ["(none)"] + [str(sf) for sf in subfolders],
                 key=f"file_nested_{chosen_path}_select"
             )
             if choice == "(none)":
                 break
-            nested_path = os.path.join(nested_path, choice)
-            chosen_path = os.path.join(chosen_path, choice)
+            nested_path = os.path.join(str(nested_path), str(choice))
+            chosen_path = os.path.join(str(chosen_path), str(choice))
 
         colH, colI, colJ = st.columns(3)
 
