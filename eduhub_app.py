@@ -493,77 +493,90 @@ if st.session_state.get("membership") == "ADMIN" and st.session_state.get("logge
             else:
                 st.error("Please enter both username/email and password.")
 
-    # -------------------------------
-    # FOLDER MANAGEMENT TAB (Parent + Subfolder tools unified)
-    # -------------------------------
-    with folder_tab:
-        st.markdown("<h4 style='color:#003366;'>📁 Manage Parent Folders</h4>", unsafe_allow_html=True)
-        parent_folders = get_parent_folders()
-        selected_parent = st.selectbox("Select parent folder", parent_folders, key="parent_folder_select_admin")
+ # -------------------------------
+# FOLDER MANAGEMENT TAB (Parent + Subfolder tools unified)
+# -------------------------------
+with folder_tab:
+    st.markdown("<h4 style='color:#003366;'>📁 Manage Parent Folders</h4>", unsafe_allow_html=True)
+    parent_folders = get_parent_folders()
+    selected_parent = st.selectbox("Select parent folder", parent_folders, key="parent_folder_select_admin")
 
-        colA, colB, colC = st.columns(3)
+    colA, colB, colC = st.columns(3)
 
-        with colA:
-            new_parent = st.text_input("New parent folder name", key="new_parent_input")
-            if st.button("➕ Add Parent Folder", key="add_parent_btn"):
-                if new_parent:
-                    new_path = os.path.join(UPLOAD_ROOT, new_parent)
-                    os.makedirs(new_path, exist_ok=True)
-                    st.success(f"✅ Parent folder '{new_parent}' created.")
+    with colA:
+        new_parent = st.text_input("New parent folder name", key="new_parent_input")
+        if st.button("➕ Add Parent Folder", key="add_parent_btn"):
+            if new_parent:
+                new_path = os.path.join(str(UPLOAD_ROOT), str(new_parent))
+                os.makedirs(new_path, exist_ok=True)
+                st.success(f"✅ Parent folder '{new_parent}' created.")
+                st.rerun()
+            else:
+                st.error("Please enter a folder name.")
+
+    with colB:
+        del_parent = st.text_input("Delete parent folder", key="del_parent_input")
+        if st.button("🗑️ Delete Parent Folder", key="del_parent_btn"):
+            if del_parent:
+                del_path = os.path.join(str(UPLOAD_ROOT), str(del_parent))
+                if os.path.exists(del_path):
+                    shutil.rmtree(del_path)
+                    st.success(f"🗑️ Parent folder '{del_parent}' deleted.")
                     st.rerun()
                 else:
-                    st.error("Please enter a folder name.")
+                    st.error("Folder not found.")
+            else:
+                st.error("Please enter a folder name.")
 
-        with colB:
-            del_parent = st.text_input("Delete parent folder", key="del_parent_input")
-            if st.button("🗑️ Delete Parent Folder", key="del_parent_btn"):
-                if del_parent:
-                    del_path = os.path.join(UPLOAD_ROOT, del_parent)
-                    if os.path.exists(del_path):
-                        shutil.rmtree(del_path)
-                        st.success(f"🗑️ Parent folder '{del_parent}' deleted.")
-                        st.rerun()
-                    else:
-                        st.error("Folder not found.")
+    with colC:
+        rename_parent_old = st.text_input("Parent folder to rename", key="rename_parent_old_input")
+        rename_parent_new = st.text_input("New name for parent folder", key="rename_parent_new_input")
+        if st.button("✏️ Rename Parent Folder", key="rename_parent_btn"):
+            if rename_parent_old and rename_parent_new:
+                old_path = os.path.join(str(UPLOAD_ROOT), str(rename_parent_old))
+                new_path = os.path.join(str(UPLOAD_ROOT), str(rename_parent_new))
+                if os.path.exists(old_path):
+                    os.rename(old_path, new_path)
+                    st.success(f"✅ Renamed parent folder '{rename_parent_old}' to '{rename_parent_new}'")
+                    st.rerun()
                 else:
-                    st.error("Please enter a folder name.")
+                    st.error("Folder not found.")
 
-        with colC:
-            rename_parent_old = st.text_input("Parent folder to rename", key="rename_parent_old_input")
-            rename_parent_new = st.text_input("New name for parent folder", key="rename_parent_new_input")
-            if st.button("✏️ Rename Parent Folder", key="rename_parent_btn"):
-                if rename_parent_old and rename_parent_new:
-                    old_path = os.path.join(UPLOAD_ROOT, rename_parent_old)
-                    new_path = os.path.join(UPLOAD_ROOT, rename_parent_new)
-                    if os.path.exists(old_path):
-                        os.rename(old_path, new_path)
-                        st.success(f"✅ Renamed parent folder '{rename_parent_old}' to '{rename_parent_new}'")
-                        st.rerun()
-                    else:
-                        st.error("Folder not found.")
+    st.markdown("<h4 style='color:#003366;'>📂 Manage Subfolders</h4>", unsafe_allow_html=True)
+    target_parent = st.selectbox(
+        "Select parent folder for subfolders",
+        get_parent_folders(),
+        key="subfolder_parent_select_admin"
+    )
 
-        st.markdown("<h4 style='color:#003366;'>📂 Manage Subfolders</h4>", unsafe_allow_html=True)
-        target_parent = st.selectbox("Select parent folder for subfolders", get_parent_folders(), key="subfolder_parent_select_admin")
+    # ✅ Debugging: log values to Streamlit Cloud logs
+    print("DEBUG UPLOAD_ROOT:", UPLOAD_ROOT, type(UPLOAD_ROOT))
+    print("DEBUG target_parent:", target_parent, type(target_parent))
 
-        nested_path = os.path.join(UPLOAD_ROOT, target_parent)
-        chosen_path = target_parent
+    # ✅ Ensure both args are strings to avoid TypeError
+    if target_parent is not None and str(target_parent).strip() != "":
+        nested_path = os.path.join(str(UPLOAD_ROOT), str(target_parent))
+        chosen_path = str(target_parent)
+    else:
+        nested_path = str(UPLOAD_ROOT)
+        chosen_path = ""
 
-        # ✅ Drill down recursively
-        while True:
-            subfolders = get_subfolders(nested_path)
-            if not subfolders:
-                break
-            choice = st.selectbox(
-                f"Select subfolder inside {chosen_path}",
-                ["(none)"] + subfolders,
-                key=f"nested_{chosen_path}_select"
-            )
-            if choice == "(none)":
-                break
-            nested_path = os.path.join(nested_path, choice)
-            chosen_path = os.path.join(chosen_path, choice)
+    # ✅ Drill down recursively
+    while True:
+        subfolders = get_subfolders(nested_path)
+        if not subfolders:
+            break
+        choice = st.selectbox(
+            f"Select subfolder inside {chosen_path}" if chosen_path else "Select subfolder",
+            ["(none)"] + [str(sf) for sf in subfolders],
+            key=f"nested_{chosen_path}_select"
+        )
+        if choice == "(none)":
+            break
+        nested_path = os.path.join(str(nested_path), str(choice))
+        chosen_path = os.path.join(str(chosen_path), str(choice)) if chosen_path else str(choice)
 
-        colE, colF, colG = st.columns(3)
+    colE, colF, colG = st.columns(3)
 
         # ---------------- ADD SUBFOLDER ----------------
         with colE:
