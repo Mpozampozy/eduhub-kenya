@@ -549,10 +549,6 @@ with folder_tab:
         key="subfolder_parent_select_admin"
     )
 
-    # ✅ Debugging: log values to Streamlit Cloud logs
-    print("DEBUG UPLOAD_ROOT:", UPLOAD_ROOT, type(UPLOAD_ROOT))
-    print("DEBUG target_parent:", target_parent, type(target_parent))
-
     # ✅ Ensure both args are strings to avoid TypeError
     if target_parent is not None and str(target_parent).strip() != "":
         nested_path = os.path.join(str(UPLOAD_ROOT), str(target_parent))
@@ -576,7 +572,17 @@ with folder_tab:
         nested_path = os.path.join(str(nested_path), str(choice))
         chosen_path = os.path.join(str(chosen_path), str(choice)) if chosen_path else str(choice)
 
+    # ✅ Columns for subfolder actions
     colE, colF, colG = st.columns(3)
+
+    with colE:
+        st.write("Subfolder action A here")
+
+    with colF:
+        st.write("Subfolder action B here")
+
+    with colG:
+        st.write("Subfolder action C here")
 
         # ---------------- ADD SUBFOLDER ----------------
         with colE:
