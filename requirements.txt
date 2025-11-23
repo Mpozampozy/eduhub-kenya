@@ -1,0 +1,6 @@
+streamlit
+PyDrive2
+oauth2client
+pandas
+numpy
+requests
