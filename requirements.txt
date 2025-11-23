@@ -4,3 +4,7 @@ oauth2client
 pandas
 numpy
 requests
+git add -f requirements.txt
+git commit -m "Add requirements.txt with correct PyDrive2 dependency"
+git push origin main
+
