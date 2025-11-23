@@ -1,15 +1,15 @@
 import os
 import sys
 import streamlit as st
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 
 def authenticate_drive():
     """
-    Authenticate with Google Drive using PyDrive.
-    Uses saved credentials.json for automatic login.
-    Falls back to browser login if no credentials exist.
-    Loads client secrets securely from Streamlit secrets.
+    Authenticate with Google Drive using PyDrive2.
+    - Uses saved credentials.json for automatic login.
+    - Falls back to browser login if no credentials exist.
+    - Loads client secrets securely from Streamlit secrets if provided.
     """
     gauth = GoogleAuth()
 
@@ -35,7 +35,7 @@ def authenticate_drive():
 
 def upload_to_drive(drive, local_path, filename):
     """
-    Upload a file to Google Drive.
+    Upload a file to Google Drive using PyDrive2.
     Returns the file ID of the uploaded file.
     """
     file = drive.CreateFile({'title': filename})
