@@ -1,5 +1,5 @@
 # -------------------------------
-# PART 1: Imports, config, and sidebar setup
+# PART 1A: Imports, config, and sidebar setup
 # -------------------------------
 import os
 import random
@@ -13,6 +13,17 @@ import uuid, time   # ✅ added for session tracking
 from send_email import send_email
 from utils import list_files, days_remaining, is_membership_active
 from drive_utils import authenticate_drive, upload_to_drive
+
+# -------------------------------
+# PART 1B: Initialize Google Drive session
+# -------------------------------
+if "drive" not in st.session_state or st.session_state["drive"] is None:
+    with st.spinner("🔑 Authenticating Google Drive..."):
+        try:
+            st.session_state["drive"] = authenticate_drive()
+            st.success("✅ Google Drive authenticated successfully.")
+        except Exception as e:
+            st.error(f"❌ Failed to authenticate Google Drive: {e}")
 
 UPLOAD_ROOT = "uploads"
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
@@ -432,7 +443,7 @@ if st.session_state.get("membership") == "ADMIN" and st.session_state.get("logge
                 st.write(f"📄 {page}: {count} views")
         else:
             st.write("No page views yet.")
-    # -------------------------------
+        # -------------------------------
     # FILE MANAGEMENT TAB
     # -------------------------------
     with file_tab:
@@ -464,22 +475,36 @@ if st.session_state.get("membership") == "ADMIN" and st.session_state.get("logge
 
         colH, colI, colJ = st.columns(3)
 
-        # ---------------- UPLOAD FILE ----------------
+                        # ---------------- UPLOAD FILE ----------------
         with colH:
-            uploaded_file = st.file_uploader("Upload new file", key="file_upload_input")
-            if uploaded_file is not None:
-                save_path = os.path.join(nested_path, uploaded_file.name)
-                os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                with open(save_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                st.success(f"✅ File '{uploaded_file.name}' uploaded to '{chosen_path}'")
+            # File uploader with 200MB limit
+            uploaded_file = st.file_uploader(
+                "Drag and drop file here (Limit 200MB per file)",
+                key="file_upload_input"
+            )
 
-                if st.session_state.get("drive"):
-                    file_id = upload_to_drive(st.session_state["drive"], save_path, uploaded_file.name)
-                    st.session_state["drive_files"][uploaded_file.name] = file_id
-                    save_drive_files(st.session_state["drive_files"])
-                    st.success(f"☁️ File '{uploaded_file.name}' also uploaded to Google Drive.")
-                st.rerun()
+            if uploaded_file is not None:
+                if uploaded_file.size > 200 * 1024 * 1024:  # 200MB in bytes
+                    st.error("❌ File too large! Please upload files under 200MB.")
+                else:
+                    save_path = os.path.join(nested_path, uploaded_file.name)
+                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                    with open(save_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    st.success(f"✅ File '{uploaded_file.name}' uploaded locally to '{chosen_path}'")
+
+                    # Upload to Drive only when button is clicked
+                    if st.button("☁️ Upload to Google Drive"):
+                        if st.session_state.get("drive"):
+                            file_id = upload_to_drive(
+                                st.session_state["drive"], save_path, uploaded_file.name
+                            )
+                            st.session_state["drive_files"][uploaded_file.name] = file_id
+                            save_drive_files(st.session_state["drive_files"])
+                            st.success(f"☁️ File '{uploaded_file.name}' uploaded to Google Drive (ID: {file_id}).")
+                            st.rerun()
+                        else:
+                            st.error("❌ Drive session not available. Please authenticate first.")
 
         # ---------------- DELETE FILE ----------------
         with colI:
