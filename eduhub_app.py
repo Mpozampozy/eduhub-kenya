@@ -14,6 +14,20 @@ from pydrive2.drive import GoogleDrive
 from drive_utils import authenticate_drive, upload_to_drive
 import theme   # your theme.py file in the same repo
 
+# --- Helper functions ---
+def is_membership_active(expiry_date_str: str) -> bool:
+    """
+    Check if membership is still active based on expiry date string.
+    Expected format: 'YYYY-MM-DD' or ISO datetime string.
+    """
+    if not expiry_date_str:
+        return False
+    try:
+        expiry_date = datetime.datetime.fromisoformat(expiry_date_str)
+        return datetime.datetime.now() < expiry_date
+    except Exception:
+        return False
+
 def authenticate_drive():
     """
     Authenticate with Google Drive using PyDrive2.
