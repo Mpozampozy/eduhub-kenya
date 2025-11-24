@@ -1,29 +1,53 @@
-# -------------------------------
-# PART 1A: Imports, config, and sidebar setup
-# -------------------------------
 import os
-import random
+import sys
 import streamlit as st
-import theme   # ✅ import theme for colors
-import json
-import hashlib
-import shutil
-import uuid, time   # ✅ added for session tracking
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 
-from send_email import send_email
-from utils import list_files, days_remaining, is_membership_active
-from drive_utils import authenticate_drive, upload_to_drive
+def authenticate_drive():
+    """
+    Authenticate with Google Drive using PyDrive2.
+    - Uses saved credentials.json for automatic login.
+    - Falls back to browser login if no credentials exist.
+    - Loads client secrets securely from Streamlit secrets if provided.
+    """
+    gauth = GoogleAuth()
 
-# -------------------------------
-# PART 1B: Initialize Google Drive session
-# -------------------------------
-if "drive" not in st.session_state or st.session_state["drive"] is None:
-    with st.spinner("🔑 Authenticating Google Drive..."):
-        try:
-            st.session_state["drive"] = authenticate_drive()
-            st.success("✅ Google Drive authenticated successfully.")
-        except Exception as e:
-            st.error(f"❌ Failed to authenticate Google Drive: {e}")
+    # Load client secrets directly from Streamlit secrets
+    gauth.settings["client_config_backend"] = "settings"
+    gauth.settings["client_config"] = {
+        "client_id": st.secrets["google"]["client_id"],
+        "client_secret": st.secrets["google"]["client_secret"],
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "redirect_uris": st.secrets["google"]["redirect_uris"],
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
+    }
+
+    # Try to load saved credentials
+    gauth.LoadCredentialsFile("credentials.json")
+
+    if gauth.credentials is None:
+        gauth.LocalWebserverAuth()   # First-time login → browser flow
+    elif gauth.access_token_expired:
+        gauth.Refresh()              # Refresh silently
+    else:
+        gauth.Authorize()            # Already valid
+
+    # Save the current credentials to a file
+    gauth.SaveCredentialsFile("credentials.json")
+
+    return GoogleDrive(gauth)
+
+def upload_to_drive(drive, local_path, filename):
+    """
+    Upload a file to Google Drive using PyDrive2.
+    Returns the file ID of the uploaded file.
+    """
+    file = drive.CreateFile({'title': filename})
+    file.SetContentFile(local_path)
+    file.Upload()
+    return file['id']
 
 UPLOAD_ROOT = "uploads"
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
