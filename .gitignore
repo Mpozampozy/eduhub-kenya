@@ -1,0 +1,34 @@
+# Windows system folders
+Desktop/
+Documents/
+Downloads/
+Pictures/
+Music/
+Videos/
+AppData/
+Application Data/
+Cookies/
+Local Settings/
+My Documents/
+NetHood/
+PrintHood/
+Recent/
+SendTo/
+Start Menu/
+Templates/
+
+# IDE/editor configs
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+# Google Drive credentials
+credentials.json
+client_secrets.json
+
+ 
+visits.json 
