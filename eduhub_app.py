@@ -481,16 +481,53 @@ if st.session_state["logged_in"]:
     for folder in sorted(get_parent_folders()):
         show_folder_tree(folder)
 
-# -------------------------------
-# Admin Panel (Tabbed Layout) — unified, no duplicates
-# -------------------------------
-if st.session_state.get("membership") == "ADMIN" and st.session_state.get("logged_in"):
-    st.markdown("<h3 style='color:#003366;'>🛠️ Admin Panel</h3>", unsafe_allow_html=True)
+# ---------------- Admin Panel ----------------
+if st.session_state.get("logged_in") and st.session_state.get("is_admin"):
+    st.header("🛠️ Admin Panel")
 
-    # ✅ define all four tabs (only visible to Admin)
-    admin_tab, user_tab, folder_tab, file_tab = st.tabs(
-        ["Admin Tools", "User Management", "Folder Management", "File Management"]
-    )
+    admin_tabs = st.tabs(["Admin Tools", "User Management", "Folder Management", "File Management"])
+
+    # ---------------- Admin Tools ----------------
+    with admin_tabs[0]:
+        st.subheader("Admin Tools")
+        st.write("Here you can view analytics, manage traffic, and monitor app usage.")
+        # Example: show traffic stats
+        total_visits = st.session_state.get("total_visits", 0)
+        st.metric("Total App Visits", total_visits)
+
+    # ---------------- User Management ----------------
+    with admin_tabs[1]:
+        st.subheader("User Management")
+        st.write("Manage users, reset passwords, and assign roles.")
+        # Example: list users
+        users = st.session_state.get("users", [])
+        for user in users:
+            st.write(f"- {user}")
+
+    # ---------------- Folder Management ----------------
+    with admin_tabs[2]:
+        st.subheader("Folder Management")
+        st.write("Create, rename, or delete folders in Drive.")
+        # Example: folder creation
+        new_folder = st.text_input("New Folder Name")
+        if st.button("Create Folder"):
+            st.success(f"📂 Folder '{new_folder}' created!")
+
+    # ---------------- File Management ----------------
+    with admin_tabs[3]:
+        st.subheader("File Management")
+        st.write("Upload, delete, or move files between folders.")
+
+        # Example: show uploaded files (highlighted clickable blocks)
+        for fname, file_id in st.session_state.get("drive_files", {}).items():
+            drive_link = f"https://drive.google.com/file/d/{file_id}/view"
+            st.markdown(
+                f"<a href='{drive_link}' target='_blank' style='display:block; "
+                f"padding:8px; margin:4px 0; background-color:#e8f0fe; "
+                f"border-radius:5px; text-decoration:none; font-weight:bold; "
+                f"color:#174ea6;'>{fname}</a>",
+                unsafe_allow_html=True
+            )
 
     # -------------------------------
     # ADMIN TOOLS TAB
@@ -509,68 +546,102 @@ if st.session_state.get("membership") == "ADMIN" and st.session_state.get("logge
                 st.write(f"📄 {page}: {count} views")
         else:
             st.write("No page views yet.")
-        # -------------------------------
-    # FILE MANAGEMENT TAB
-    # -------------------------------
-    with file_tab:
-        st.markdown("<h4 style='color:#003366;'>📄 Manage Files</h4>", unsafe_allow_html=True)
-        parent_folders = get_parent_folders()
-        target_parent = st.selectbox("Select parent folder", parent_folders, key="file_parent_select_admin")
 
-        # ✅ Ensure safe join
-        if target_parent is not None and str(target_parent).strip() != "":
-            nested_path = os.path.join(str(UPLOAD_ROOT), str(target_parent))
-            chosen_path = str(target_parent)
-        else:
-            nested_path = str(UPLOAD_ROOT)
-            chosen_path = ""
+# ---------------- Layout ----------------
+colH, colI, colJ = st.columns([2, 1, 1])  # ✅ define all columns you plan to use
 
-        while True:
-            subfolders = get_subfolders(nested_path)
-            if not subfolders:
-                break
-            choice = st.selectbox(
-                f"Select subfolder inside {chosen_path}",
-                ["(none)"] + [str(sf) for sf in subfolders],
-                key=f"file_nested_{chosen_path}_select"
-            )
-            if choice == "(none)":
-                break
-            nested_path = os.path.join(str(nested_path), str(choice))
-            chosen_path = os.path.join(str(chosen_path), str(choice))
+# ---------------- UPLOAD FILE (Admins only) ----------------
+if st.session_state.get("logged_in") and st.session_state.get("is_admin"):
+    with colH:
+        uploaded_file = st.file_uploader(
+            "Drag and drop file here (Limit 200MB per file)",
+            key="file_upload_input_admin"
+        )
 
-        colH, colI, colJ = st.columns(3)
+        if uploaded_file is not None:
+            if uploaded_file.size > 200 * 1024 * 1024:
+                st.error("❌ File too large! Please upload files under 200MB.")
+            else:
+                st.success(f"✅ File '{uploaded_file.name}' received")
 
-                        # ---------------- UPLOAD FILE ----------------
-        with colH:
-            # File uploader with 200MB limit
-            uploaded_file = st.file_uploader(
-                "Drag and drop file here (Limit 200MB per file)",
-                key="file_upload_input"
-            )
+                # ---------------- Folder Selection ----------------
+                st.markdown("### 📂 Choose upload destination in Drive")
 
-            if uploaded_file is not None:
-                if uploaded_file.size > 200 * 1024 * 1024:  # 200MB in bytes
-                    st.error("❌ File too large! Please upload files under 200MB.")
+                # Dynamically load existing paths
+                drive_files = st.session_state.get("drive_files", {})
+                existing_paths = list(drive_files.keys())
+
+                chosen_path = st.selectbox("Select folder path", existing_paths) \
+                    if existing_paths else st.text_input("Enter new folder path")
+
+                if st.session_state.get("drive") and chosen_path:
+                    st.session_state.setdefault("drive_files", {})
+                    st.session_state["drive_files"].setdefault(chosen_path, {})
+
+                    if uploaded_file.name in st.session_state["drive_files"][chosen_path]:
+                        st.warning(
+                            f"⚠️ File '{uploaded_file.name}' already exists in '{chosen_path}' "
+                            f"(ID: {st.session_state['drive_files'][chosen_path][uploaded_file.name]})."
+                        )
+                    else:
+                        temp_path = os.path.join("temp", uploaded_file.name)
+                        os.makedirs("temp", exist_ok=True)
+                        with open(temp_path, "wb") as f:
+                            f.write(uploaded_file.getbuffer())
+
+                        file_id = upload_to_drive(
+                            st.session_state["drive"], temp_path, uploaded_file.name, chosen_path
+                        )
+
+                        # ✅ Save file under its folder path
+                        st.session_state["drive_files"][chosen_path][uploaded_file.name] = file_id
+                        save_drive_files(st.session_state["drive_files"])
+
+                        st.success(
+                            f"☁️ File '{uploaded_file.name}' uploaded to Google Drive at '{chosen_path}' "
+                            f"(ID: {file_id})."
+                        )
+                        st.rerun()
                 else:
-                    save_path = os.path.join(nested_path, uploaded_file.name)
-                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                    with open(save_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    st.success(f"✅ File '{uploaded_file.name}' uploaded locally to '{chosen_path}'")
+                    st.error("❌ Drive session not available. Please authenticate first.")
 
-                    # Upload to Drive only when button is clicked
-                    if st.button("☁️ Upload to Google Drive"):
-                        if st.session_state.get("drive"):
-                            file_id = upload_to_drive(
-                                st.session_state["drive"], save_path, uploaded_file.name
-                            )
-                            st.session_state["drive_files"][uploaded_file.name] = file_id
-                            save_drive_files(st.session_state["drive_files"])
-                            st.success(f"☁️ File '{uploaded_file.name}' uploaded to Google Drive (ID: {file_id}).")
-                            st.rerun()
-                        else:
-                            st.error("❌ Drive session not available. Please authenticate first.")
+    with colI:
+        st.info("ℹ️ Admin status panel")
+
+    with colJ:
+        st.info("📂 Admin folder controls")
+
+# ---------------- File View (Users only, read-only) ----------------
+elif st.session_state.get("logged_in") and not st.session_state.get("is_admin"):
+    st.header("📂 Your Files")
+
+    drive_files = st.session_state.get("drive_files", {})
+
+    # --- Normalize: wrap any stray string entries into a dict ---
+    normalized = {}
+    for key, val in drive_files.items():
+        if isinstance(val, str):
+            # Move flat entries into a default folder
+            normalized.setdefault("Unsorted", {})[key] = val
+        elif isinstance(val, dict):
+            normalized[key] = val
+
+    drive_files = normalized
+
+    # --- Now safe to loop ---
+    for folder_path, files in drive_files.items():
+        st.markdown(f"#### 📁 {folder_path}")
+        if isinstance(files, dict):  # ✅ guard against non-dict values
+            for fname, file_id in files.items():
+                drive_link = f"https://drive.google.com/file/d/{file_id}/view"
+                st.markdown(
+                    f"<a href='{drive_link}' target='_blank' style='display:block; "
+                    f"padding:8px; margin:4px 0; background-color:#f0f2f6; "
+                    f"border-radius:5px; text-decoration:none; font-weight:bold; "
+                    f"color:#1a73e8;'>{fname}</a>",
+                    unsafe_allow_html=True
+                )
+
 
         # ---------------- DELETE FILE ----------------
         with colI:

@@ -26,9 +26,38 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
 # Google Drive credentials
 credentials.json
 client_secrets.json
 
- 
-visits.json 
+# Runtime data
+visits.json
+sessions.json
+users.json
+drive_files.json
+
+# Uploads and resource folders
+uploads/
+uploaded_resources/
+
+# Cache and history
+.cache/
+.matplotlib/
+.python_history
+.viminfo
+
+# Logs and backups
+*.log
+*.bak
+*.tmp
+
+# Windows registry/system artifacts
+NTUSER.DAT*
+*.lnk
+*.ini
+*.bat
+
+# Node/npm artifacts (if any frontend work is added later)
+node_modules/
+package-lock.json
