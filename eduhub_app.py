@@ -383,6 +383,23 @@ with right_col:
                 st.rerun()
             else:
                 st.error("❌ Invalid reset code.")
+
+    # 🔹 Log Out block (NEWLY ADDED)
+    elif st.session_state.get("logged_in", False):
+        st.markdown(f"**Logged in as {st.session_state['username']} ({st.session_state['membership']})**")
+        if st.button("Log Out", key="logout_btn_expander"):
+            st.session_state.update({
+                "logged_in": False,
+                "username": "",
+                "membership": "",
+                "expiry": "",
+                "show_login": True,
+                "show_signup": False,
+                "show_recovery": False
+            })
+            st.success("✅ You have been logged out.")
+            st.rerun()
+
 # -------------------------------
 # PART 3: Exams, folder tree helpers, and center display
 # -------------------------------
