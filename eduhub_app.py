@@ -1,9 +1,18 @@
+# Standard library imports
 import os
 import sys
-import theme
+import json   # for load_visits() and visits.json
+import time   # if you use sleep or timestamps
+import datetime  # for date/time handling
+
+# Third-party imports
 import streamlit as st
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
+
+# Local module imports
+from drive_utils import authenticate_drive, upload_to_drive
+import theme   # your theme.py file in the same repo
 
 def authenticate_drive():
     """
