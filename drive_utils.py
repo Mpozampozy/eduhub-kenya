@@ -14,12 +14,12 @@ def authenticate_drive():
     gauth = GoogleAuth()
 
     # Load client secrets directly from Streamlit secrets
-    client_config = {
+    gauth.settings["client_config_backend"] = "settings"
+    gauth.settings["client_config"] = {
         "client_id": st.secrets["google"]["client_id"],
         "client_secret": st.secrets["google"]["client_secret"],
         "redirect_uris": st.secrets["google"]["redirect_uris"]
     }
-    gauth.settings["client_config"] = client_config
 
     # Try to load saved credentials
     gauth.LoadCredentialsFile("credentials.json")
