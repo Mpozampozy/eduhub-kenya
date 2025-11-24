@@ -4,6 +4,7 @@ import sys
 import json   # for load_visits() and visits.json
 import time   # if you use sleep or timestamps
 import datetime  # for date/time handling
+import uuid   # for generating unique session IDs
 
 # Third-party imports
 import streamlit as st
